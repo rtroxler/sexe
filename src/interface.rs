@@ -52,23 +52,22 @@ impl Input for NumberInput {
                 // Reset to placeholder if our string is too short.
                 if self.display_string.len() <= 2 {
                     self.display_string = String::from("+0");
-                }
-                else {
+                } else {
                     self.display_string.pop();
                 }
-            },
+            }
             event::Key::Char(digit) if digit.is_ascii_digit() => {
                 if &self.display_string == "+0" || &self.display_string == "-0" {
                     self.display_string.pop();
                 }
                 self.display_string.push(*digit);
-            },
+            }
             event::Key::Char('+') => {
                 self.display_string.replace_range(..1, "+");
-            },
+            }
             event::Key::Char('-') => {
                 self.display_string.replace_range(..1, "-");
-            },
+            }
             _ => (),
         };
         self.number_value = self.display_string.parse().unwrap();
@@ -80,10 +79,10 @@ impl Input for TextInput {
         match key {
             event::Key::Backspace => {
                 self.string.pop();
-            },
+            }
             event::Key::Char(c) => {
                 self.string.push(*c);
-            },
+            }
             _ => (),
         };
     }
@@ -109,7 +108,12 @@ enum Error {
     RangeError,
 }
 
-fn evaluate_function_over_domain(start_x: f64, end_x: f64, resolution: u32, function_string: &str) -> Result<Vec<(f64, f64)>, Error> {
+fn evaluate_function_over_domain(
+    start_x: f64,
+    end_x: f64,
+    resolution: u32,
+    function_string: &str,
+) -> Result<Vec<(f64, f64)>, Error> {
     let mut vars_map = HashMap::new();
     vars_map.insert("x".to_string(), start_x);
 
@@ -119,23 +123,26 @@ fn evaluate_function_over_domain(start_x: f64, end_x: f64, resolution: u32, func
                 return Err(Error::ParseError);
             }
             func
-        },
+        }
         Err(_) => {
             return Err(Error::ParseError);
-        },
+        }
     };
 
     let step_width = (end_x - start_x) / resolution as f64;
 
-    Ok((0..resolution).map(|x| start_x + (x as f64 * step_width)).filter_map(|x| {
-        if let Some(val) = vars_map.get_mut(&"x".to_string()) {
-            *val = x;
-        }
-        match func.evaluate(&vars_map) {
-            Ok(y) => Some((x, y)),
-            Err(_) => None,
-        }
-    }).collect())
+    Ok((0..resolution)
+        .map(|x| start_x + (x as f64 * step_width))
+        .filter_map(|x| {
+            if let Some(val) = vars_map.get_mut(&"x".to_string()) {
+                *val = x;
+            }
+            match func.evaluate(&vars_map) {
+                Ok(y) => Some((x, y)),
+                Err(_) => None,
+            }
+        })
+        .collect())
 }
 
 impl Application {
@@ -149,13 +156,13 @@ impl Application {
                     SelectedBox::EndX => SelectedBox::StartX,
                     _ => SelectedBox::Function,
                 };
-            },
+            }
             event::Key::Right => {
                 self.selected_box = match self.selected_box {
                     SelectedBox::Function => SelectedBox::StartX,
                     _ => SelectedBox::EndX,
                 };
-            },
+            }
             // Otherwire we hand off input to the children.
             _ => match self.selected_box {
                 SelectedBox::Function => self.function_input.process_input(&key),
@@ -197,26 +204,33 @@ impl Application {
                     });
                 Chart::default()
                     .block(Block::default().title("Plot").borders(Borders::ALL))
-                    .x_axis(Axis::default()
-                        .title("X")
-                        .bounds([self.start_x_input.number_value, self.end_x_input.number_value])
-                        .labels(&[
+                    .x_axis(
+                        Axis::default()
+                            .title("X")
+                            .bounds([
+                                self.start_x_input.number_value,
+                                self.end_x_input.number_value,
+                            ])
+                            .labels(&[
                                 format!("{:.2}", self.start_x_input.number_value).as_str(),
                                 "0",
                                 format!("{:.2}", self.end_x_input.number_value).as_str(),
-                        ]))
-                    .y_axis(Axis::default()
-                        .title("Y")
-                        .bounds([self.start_y, self.end_y])
-                        .labels(&[
+                            ]),
+                    )
+                    .y_axis(
+                        Axis::default()
+                            .title("Y")
+                            .bounds([self.start_y, self.end_y])
+                            .labels(&[
                                 format!("{:.2}", self.start_y).as_str(),
                                 "0",
                                 format!("{:.2}", self.end_y).as_str(),
-                        ]))
+                            ]),
+                    )
                     .datasets(&[Dataset::default()
-                                .marker(Marker::Braille)
-                                .style(Style::default().fg(Color::Magenta))
-                                .data(&self.evaluation)])
+                        .marker(Marker::Braille)
+                        .style(Style::default().fg(Color::Magenta))
+                        .data(&self.evaluation)])
                     .render(t, &chunks[1]);
             });
 
@@ -253,12 +267,12 @@ impl Application {
                     let (start_y, end_y) = determine_y_bounds(&self.evaluation);
                     self.start_y = start_y;
                     self.end_y = end_y;
-                },
+                }
                 Err(_) => {
                     self.evaluation = Vec::new();
                     self.start_y = 0.0;
                     self.end_y = 0.0;
-                },
+                }
             }
 
             self.draw(&mut terminal, &term_size);
@@ -270,9 +284,13 @@ impl Application {
     fn plot_function(&mut self) -> Result<Vec<(f64, f64)>, Error> {
         if self.start_x_input.number_value >= self.end_x_input.number_value {
             Err(Error::RangeError)
-        }
-        else {
-            evaluate_function_over_domain(self.start_x_input.number_value, self.end_x_input.number_value, self.resolution, &self.function_input.string)
+        } else {
+            evaluate_function_over_domain(
+                self.start_x_input.number_value,
+                self.end_x_input.number_value,
+                self.resolution,
+                &self.function_input.string,
+            )
         }
     }
 }
@@ -298,4 +316,3 @@ pub fn display() {
     };
     application.start();
 }
-
